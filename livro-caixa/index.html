@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Livro Caixa PRO+</title>
+<link rel="manifest" href="manifest.json">
+
+<style>
+:root{--primary:#6c5ce7;--bg:#f5f6fa;--card:#fff;--text:#222}
+body.dark{--bg:#121212;--card:#1e1e1e;--text:#f1f1f1}
+body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(45deg,#6c5ce7,#00cec9);color:#fff;padding:20px;text-align:center}
+.container{padding:12px}
+input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:12px;border:none}
+button{background:var(--primary);color:#fff}
+.card{background:var(--card);padding:12px;border-radius:16px;margin-top:10px;box-shadow:0 4px 10px rgba(0,0,0,.1)}
+.row{display:flex;justify-content:space-between}
+.income{color:#00b894}.expense{color:#ff7675}
+.balance{font-size:22px;font-weight:bold;margin:10px 0}
+canvas{margin-top:10px;background:var(--card);border-radius:12px}
+.topbar{display:flex;gap:6px}
+</style>
+</head>
+
+<body>
+<header>💎 Livro Caixa PRO+<br><small>Dinho Oliveira</small></header>
+
+<div class="container">
+<div class="topbar">
+<button onclick="toggleTheme()">🌙</button>
+<button onclick="exportCSV()">📤</button>
+</div>
+
+<div class="balance" id="balance">Saldo: R$ 0,00</div>
+
+<input id="desc" placeholder="Descrição">
+<input id="amount" type="number" placeholder="Valor">
+<input id="date" type="date">
+
+<select id="type">
+<option value="income">Entrada</option>
+<option value="expense">Saída</option>
+</select>
+
+<select id="category">
+<option>Geral</option>
+<option>Alimentação</option>
+<option>Transporte</option>
+<option>Lazer</option>
+<option>Contas</option>
+</select>
+
+<button onclick="addTransaction()">Adicionar</button>
+
+<input id="filter" placeholder="Buscar..." oninput="render()">
+
+<canvas id="chart" height="140"></canvas>
+
+<div id="list"></div>
+</div>
+
+<script>
+let user = localStorage.getItem('user') || prompt('Digite seu nome');
+localStorage.setItem('user', user);
+
+let transactions = JSON.parse(localStorage.getItem(user))||[];
+let dark = JSON.parse(localStorage.getItem('dark'))||false;
+if(dark) document.body.classList.add('dark');
+
+function save(){localStorage.setItem(user,JSON.stringify(transactions));}
+
+function toggleTheme(){
+document.body.classList.toggle('dark');
+dark=!dark;
+localStorage.setItem('dark',dark);
+}
+
+function addTransaction(){
+let d=desc.value,a=parseFloat(amount.value),t=type.value,dt=date.value,c=category.value;
+if(!d||!a||!dt) return alert('Preencha tudo');
+transactions.push({d,a,t,dt,c});
+save();
+render();
+desc.value='';amount.value='';
+}
+
+function deleteTransaction(i){
+transactions.splice(i,1);
+save();
+render();
+}
+
+function exportCSV(){
+let csv='Descricao,Valor,Tipo,Data,Categoria\n';
+transactions.forEach(t=>{
+csv+=`${t.d},${t.a},${t.t},${t.dt},${t.c}\n`;
+});
+let blob=new Blob([csv]);
+let a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='dados.csv';
+a.click();
+}
+
+function render(){
+let list=document.getElementById('list');
+list.innerHTML='';
+let f=filter.value.toLowerCase();
+let balance=0,income=0,expense=0;
+
+transactions.slice().reverse().forEach((t,i)=>{
+if(f && !t.d.toLowerCase().includes(f)) return;
+
+balance+=t.t==='income'?t.a:-t.a;
+if(t.t==='income') income+=t.a; else expense+=t.a;
+
+let div=document.createElement('div');
+div.className='card';
+div.innerHTML=`
+<div class='row'><strong>${t.d}</strong><span class='${t.t}'>${t.t==='income'?'+':'-'} R$ ${t.a.toFixed(2)}</span></div>
+<div style='font-size:12px'>${t.c} • ${t.dt}</div>
+<button onclick="deleteTransaction(${transactions.length-1-i})">Excluir</button>`;
+list.appendChild(div);
+});
+
+balanceEl.innerText='Saldo: R$ '+balance.toFixed(2);
+drawChart(income,expense);
+}
+
+function drawChart(income,expense){
+let c=document.getElementById('chart');
+let ctx=c.getContext('2d');
+ctx.clearRect(0,0,c.width,c.height);
+let total=income+expense;
+if(!total) return;
+let w=c.width;
+ctx.fillStyle='#00b894';
+ctx.fillRect(0,0,(income/total)*w,20);
+ctx.fillStyle='#ff7675';
+ctx.fillRect((income/total)*w,0,(expense/total)*w,20);
+}
+
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('sw.js');
+}
+
+render();
+</script>
+</body>
+</html>
