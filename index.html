@@ -19,7 +19,7 @@ button{background:var(--primary);color:#fff}
 .income{color:#00b894}.expense{color:#ff7675}
 .balance{font-size:22px;font-weight:bold;margin:10px 0}
 canvas{margin-top:10px;background:var(--card);border-radius:12px}
-.topbar{display:flex;gap:6px}
+.topbar{display:flex;gap:6px;flex-wrap:wrap}
 </style>
 </head>
 
@@ -30,6 +30,8 @@ canvas{margin-top:10px;background:var(--card);border-radius:12px}
 <div class="topbar">
 <button onclick="toggleTheme()">🌙</button>
 <button onclick="exportCSV()">📤</button>
+<button onclick="backup()">💾 Backup</button>
+<input type="file" onchange="restore(event)">
 </div>
 
 <div class="balance" id="balance">Saldo: R$ 0,00</div>
@@ -61,6 +63,20 @@ canvas{margin-top:10px;background:var(--card);border-radius:12px}
 </div>
 
 <script>
+// 🔐 SENHA
+let senha = localStorage.getItem('senha');
+
+if(!senha){
+  senha = prompt('Crie uma senha');
+  localStorage.setItem('senha', senha);
+}else{
+  let login = prompt('Digite a senha');
+  if(login !== senha){
+    document.body.innerHTML = '<h1 style="text-align:center">Acesso negado</h1>';
+  }
+}
+
+// USER
 let user = localStorage.getItem('user') || prompt('Digite seu nome');
 localStorage.setItem('user', user);
 
@@ -71,9 +87,9 @@ if(dark) document.body.classList.add('dark');
 function save(){localStorage.setItem(user,JSON.stringify(transactions));}
 
 function toggleTheme(){
-document.body.classList.toggle('dark');
-dark=!dark;
-localStorage.setItem('dark',dark);
+  document.body.classList.toggle('dark');
+  dark=!dark;
+  localStorage.setItem('dark',dark);
 }
 
 function addTransaction(){
@@ -101,6 +117,28 @@ let a=document.createElement('a');
 a.href=URL.createObjectURL(blob);
 a.download='dados.csv';
 a.click();
+}
+
+// 💾 BACKUP
+function backup(){
+const data = JSON.stringify(transactions);
+const blob = new Blob([data], {type:'application/json'});
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = 'backup-caixa.json';
+a.click();
+}
+
+// 📥 RESTORE
+function restore(e){
+const file = e.target.files[0];
+const reader = new FileReader();
+reader.onload = function(){
+transactions = JSON.parse(reader.result);
+save();
+render();
+};
+reader.readAsText(file);
 }
 
 function render(){
