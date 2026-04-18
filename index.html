@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle de Caixa</title>
 
+<link rel="manifest" href="manifest.json">
+
 <style>
 body{
   margin:0;
@@ -30,7 +32,6 @@ header small{
   color:#aaa;
 }
 
-/* 3 PONTOS */
 .menu{
   position:absolute;
   right:15px;
@@ -39,7 +40,6 @@ header small{
   cursor:pointer;
 }
 
-/* BOTÕES */
 .toolbar{
   display:flex;
   gap:8px;
@@ -55,7 +55,6 @@ header small{
   color:#fff;
 }
 
-/* FORM */
 .filters{
   padding:10px;
 }
@@ -70,9 +69,9 @@ input{
   color:#fff;
 }
 
-/* LISTA */
 .table{
   padding:10px;
+  margin-bottom:80px;
 }
 
 .row{
@@ -85,7 +84,6 @@ input{
 .green{color:#00e676}
 .red{color:#ff5252}
 
-/* RODAPÉ */
 .footer{
   position:fixed;
   bottom:0;
@@ -127,21 +125,25 @@ input{
 <div class="footer">
 <div>
 <span>Total Crédito:</span>
-<span id="totalIn">0</span>
+<span id="totalIn">R$ 0,00</span>
 </div>
 <div>
 <span>Total Débito:</span>
-<span id="totalOut">0</span>
+<span id="totalOut">R$ 0,00</span>
 </div>
 <div>
 <b>Saldo:</b>
-<b id="balance">0</b>
+<b id="balance">R$ 0,00</b>
 </div>
 </div>
 
 <script>
 let data = JSON.parse(localStorage.getItem("caixa")||"[]");
 let currentType = "income";
+
+function format(v){
+  return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
 
 function addType(type){
   currentType = type;
@@ -150,7 +152,7 @@ function addType(type){
 
 function add(){
   let desc = document.getElementById("desc").value;
-  let amount = parseFloat(document.getElementById("amount").value);
+  let amount = parseFloat(document.getElementById("amount").value.replace(",","."));
 
   if(!desc || !amount){
     alert("Preencha os campos");
@@ -177,7 +179,6 @@ function clearAll(){
   }
 }
 
-/* RELATÓRIO */
 function relatorio(){
   let texto = "RELATÓRIO DE CAIXA\n\n";
 
@@ -185,15 +186,15 @@ function relatorio(){
   let totalOut=0;
 
   data.forEach(item=>{
-    texto += `${item.desc} - R$ ${item.amount}\n`;
+    texto += `${item.desc} - ${format(item.amount)}\n`;
 
     if(item.type==="income") totalIn+=item.amount;
     else totalOut+=item.amount;
   });
 
-  texto += `\nTotal Entrada: ${totalIn}`;
-  texto += `\nTotal Saída: ${totalOut}`;
-  texto += `\nSaldo: ${totalIn-totalOut}`;
+  texto += `\nTotal Entrada: ${format(totalIn)}`;
+  texto += `\nTotal Saída: ${format(totalOut)}`;
+  texto += `\nSaldo: ${format(totalIn-totalOut)}`;
 
   alert(texto);
 }
@@ -213,15 +214,15 @@ function render(){
     <div class="row">
       <b>${item.desc}</b><br>
       <span class="${item.type==="income"?"green":"red"}">
-        ${item.type==="income"?"+":"-"} R$ ${item.amount.toFixed(2)}
+        ${item.type==="income"?"+":"-"} ${format(item.amount)}
       </span>
     </div>
     `;
   });
 
-  document.getElementById("totalIn").innerText = totalIn.toFixed(2);
-  document.getElementById("totalOut").innerText = totalOut.toFixed(2);
-  document.getElementById("balance").innerText = (totalIn-totalOut).toFixed(2);
+  document.getElementById("totalIn").innerText = format(totalIn);
+  document.getElementById("totalOut").innerText = format(totalOut);
+  document.getElementById("balance").innerText = format(totalIn-totalOut);
 }
 
 render();
